@@ -3,6 +3,9 @@ const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
 const { token } = require('./config.json');
 
+
+
+
 const sqlite3 = require('sqlite3').verbose();
 
 let db = new sqlite3.Database('./botData.db', (err) => {
@@ -21,9 +24,21 @@ db.run(`CREATE TABLE IF NOT EXISTS user_count (
     count INTEGER NOT NULL DEFAULT 0
 )`);
 
+db.run(`CREATE TABLE IF NOT EXISTS emoji_roles (
+    emoji TEXT,
+    role_id TEXT
+)`, (err) => {
+  if (err) {
+      console.log(err.message);
+  }
+  console.log("emoji_roles table created successfully.");
+
+  // Only start bot after all tables have been created
+  startBot();
+});
 
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates] });
  // You need the MessageContent intent
 
 client.commands = new Collection();
@@ -43,6 +58,7 @@ for (const folder of commandFolders) {
 		}
 	}
 }
+
 client.on('messageCreate', message => {
     if (message.author.bot) return;
 
@@ -53,8 +69,6 @@ client.on('messageCreate', message => {
         }
         
         const bannedWords = rows.map(row => row.word);
-
-        console.log(`Received a message: ${message.content}`); // logs message to console
 
         for (const word of bannedWords) {
             console.log(`Banned word: ${word}`);
@@ -103,6 +117,23 @@ client.once(Events.ClientReady, () => {
 	console.log('Ready!');
 });
 
+client.on('messageReactionAdd', async (reaction, user) => {
+    if (user.bot) return;
+
+    db.get('SELECT role_id FROM emoji_roles WHERE emoji = ?', [reaction.emoji.name], (err, row) => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+
+        if (row) {
+            const role = reaction.message.guild.roles.cache.get(row.role_id);
+            const member = reaction.message.guild.members.cache.get(user.id);
+            member.roles.add(role);
+        }
+    });
+});
+
 client.on(Events.InteractionCreate, async interaction => {
 	if (!interaction.isChatInputCommand()) return;
 
@@ -120,6 +151,23 @@ client.on(Events.InteractionCreate, async interaction => {
 			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
 		}
 	}
+client.on('messageReactionAdd', async (reaction, user) => {
+    if (user.bot) return;
+
+    db.get('SELECT role_id FROM emoji_roles WHERE emoji = ?', [reaction.emoji.name], (err, row) => {
+        if (err) {
+            console.log(err.message);
+            return;
+        }
+
+        if (row) {
+            const role = reaction.message.guild.roles.cache.get(row.role_id);
+            const member = reaction.message.guild.members.cache.get(user.id);
+            member.roles.add(role);
+        }
+    });
+});
+
 });
 
 client.login(token);

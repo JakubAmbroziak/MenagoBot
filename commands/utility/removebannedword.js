@@ -5,22 +5,26 @@ let db = new sqlite3.Database('./botData.db');
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('removebannedword')
-		.setDescription('Remove a word from the banned words list')
+		.setDescription('Remove words from the banned words list')
         .addStringOption(option =>
-            option.setName('word')
-                .setDescription('The word to be removed')
+            option.setName('words')
+                .setDescription('The words to be removed, separated by spaces or commas')
                 .setRequired(true)),
 
 	async execute(interaction) {
-        const word = interaction.options.getString('word');
+        const wordsInput = interaction.options.getString('words');
+        // Create an array of words, trim and convert to lowercase
+        const words = wordsInput.split(/[ ,]+/).map(word => word.trim().toLowerCase());
 
-        db.run(`DELETE FROM banned_words WHERE word = ?`, [word], function(err) {
-            if (err) {
-                return console.log(err.message);
-            }
-            console.log(`Row(s) deleted ${this.changes}`);
+        words.forEach(word => {
+            db.run(`DELETE FROM banned_words WHERE word = ?`, [word], function(err) {
+                if (err) {
+                    return console.log(err.message);
+                }
+                console.log(`Row(s) deleted ${this.changes}`);
+            });
         });
 
-		await interaction.reply({ content: `Word "${word}" removed from banned words list.`, ephemeral: true });
+		await interaction.reply({ content: `Words removed from the banned words list. Check the console for details.`, ephemeral: true });
 	},
 };
