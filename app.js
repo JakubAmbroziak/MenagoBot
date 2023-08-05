@@ -131,13 +131,55 @@ client.on('messageCreate', message => {
     });
 });
 
+function scheduleReminders() {
+	db.all('SELECT * FROM reminders WHERE reminder_time > ?', [Date.now()], (err, rows) => {
+		if (err) {
+			console.error('Error fetching reminders from database:', err.message);
+			return;
+		}
 
+		for (const row of rows) {
+			const { user_id, channel_id, reminder_time, message, role_id } = row;
+			const delay = reminder_time - Date.now();
+
+			setTimeout(async () => {
+				try {
+					const user = await client.users.fetch(user_id);
+					const channel = await client.channels.fetch(channel_id);
+					if (!user || !channel) {
+						return;
+					}
+
+					if (role_id) {
+						const role = channel.guild.roles.cache.get(role_id);
+						if (role) {
+							channel.send(`${role.toString()}, Reminder: ${message}`);
+						}
+					} else {
+						user.send(`Reminder: ${message}`);
+					}
+
+					// Delete the reminder from the database after sending it
+					db.run('DELETE FROM reminders WHERE user_id = ? AND channel_id = ? AND reminder_time = ?', [user_id, channel_id, reminder_time], (err) => {
+						if (err) {
+							console.error('Error deleting reminder from database:', err.message);
+						}
+					});
+				} catch (error) {
+					console.warn('Could not send a reminder:', error);
+				}
+			}, delay);
+		}
+	});
+}
 
 
 client.once(Events.ClientReady, () => {
 	console.log('Ready!');
+    scheduleReminders();
 });
-
+// Schedule reminders every 10 minutes to handle cases where the bot was offline during a reminder time
+setInterval(scheduleReminders, 10 * 60 * 1000);
 client.on('messageReactionAdd', async (reaction, user) => {
     if (user.bot) return;
 
