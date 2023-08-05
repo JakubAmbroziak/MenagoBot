@@ -32,13 +32,34 @@ db.run(`CREATE TABLE IF NOT EXISTS emoji_roles (
       console.log(err.message);
   }
   console.log("emoji_roles table created successfully.");
-
-  // Only start bot after all tables have been created
-  startBot();
+});
+db.serialize(function() {
+    db.run("CREATE TABLE IF NOT EXISTS auto_roles (guild_id TEXT, role_id TEXT)", (err) => {
+        if (err) {
+            console.error("Failed to create 'auto_roles' table", err);
+        } else {
+            console.log("'auto_roles' table created or already exists");
+        }
+    });
+});
+db.run(`
+  CREATE TABLE IF NOT EXISTS role_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    message_id TEXT NOT NULL,
+    guild_id TEXT NOT NULL
+  );
+`, (err) => {
+  if (err) {
+    console.log(err.message);
+  }
 });
 
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates] });
+const client = new Client({ 
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMembers], 
+    partials: ['MESSAGE', 'CHANNEL', 'REACTION'] 
+});
+
  // You need the MessageContent intent
 
 client.commands = new Collection();
@@ -151,23 +172,21 @@ client.on(Events.InteractionCreate, async interaction => {
 			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
 		}
 	}
-client.on('messageReactionAdd', async (reaction, user) => {
-    if (user.bot) return;
+    
 
-    db.get('SELECT role_id FROM emoji_roles WHERE emoji = ?', [reaction.emoji.name], (err, row) => {
+});
+client.on('guildMemberAdd', member => {
+    db.get("SELECT role_id FROM auto_roles WHERE guild_id = ?", [member.guild.id], function(err, row) {
         if (err) {
-            console.log(err.message);
-            return;
+            return console.error(err.message);
         }
-
         if (row) {
-            const role = reaction.message.guild.roles.cache.get(row.role_id);
-            const member = reaction.message.guild.members.cache.get(user.id);
-            member.roles.add(role);
+            const role = member.guild.roles.cache.get(row.role_id);
+            member.roles.add(role).catch(console.error);
         }
     });
 });
 
-});
+
 
 client.login(token);

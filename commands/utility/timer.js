@@ -15,12 +15,17 @@ module.exports = {
 		.addStringOption(option =>
 			option.setName('timestamp')
 				.setDescription('Specific time for the reminder (format: DD/MM/YYYY HH:mm)')
-				.setRequired(false)), // Not required because we have two ways to set the time
+				.setRequired(false)) // Not required because we have two ways to set the time
+		.addRoleOption(option =>
+			option.setName('role')
+				.setDescription('Role to be reminded')
+				.setRequired(false)),
 
 	async execute(interaction) {
 		const reminderMessage = interaction.options.getString('message');
 		const duration = interaction.options.getInteger('duration');
 		const timestamp = interaction.options.getString('timestamp');
+		const role = interaction.options.getRole('role');
 
 		if (!duration && !timestamp) {
 			await interaction.reply({ content: 'You must provide either a duration or a timestamp for the reminder.', ephemeral: true });
@@ -50,7 +55,13 @@ module.exports = {
 
 		setTimeout(async () => {
 			try {
-				await interaction.user.send(`Reminder: ${reminderMessage}`); // Send a DM
+				if (role) {
+					// If a role was selected, send a message in the channel mentioning the role
+					await interaction.channel.send(`${role.toString()}, Reminder: ${reminderMessage}`);
+				} else {
+					// If no role was selected, send the reminder as a DM
+					await interaction.user.send(`Reminder: ${reminderMessage}`);
+				}
 			} catch (error) {
 				console.warn(`Could not send a DM to the user. They might have DMs disabled.`, error);
 				// If we cannot send a DM, send the message normally
