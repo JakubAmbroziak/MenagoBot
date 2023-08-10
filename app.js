@@ -24,15 +24,6 @@ db.run(`CREATE TABLE IF NOT EXISTS user_count (
     count INTEGER NOT NULL DEFAULT 0
 )`);
 
-db.run(`CREATE TABLE IF NOT EXISTS emoji_roles (
-    emoji TEXT,
-    role_id TEXT
-)`, (err) => {
-  if (err) {
-      console.log(err.message);
-  }
-  console.log("emoji_roles table created successfully.");
-});
 db.serialize(function() {
     db.run("CREATE TABLE IF NOT EXISTS auto_roles (guild_id TEXT, role_id TEXT)", (err) => {
         if (err) {
@@ -53,6 +44,20 @@ db.run(`
     console.log(err.message);
   }
 });
+db.run(`
+      CREATE TABLE IF NOT EXISTS config (
+        guild_id TEXT PRIMARY KEY,
+        url_filter_enabled INTEGER DEFAULT 1,
+        auto_role_enabled INTEGER DEFAULT 1
+      )
+`);
+db.run(`
+CREATE TABLE IF NOT EXISTS dynamic_commands (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    command_name TEXT NOT NULL,
+    response TEXT NOT NULL
+)
+`);
 
 
 const client = new Client({ 
@@ -80,56 +85,68 @@ for (const folder of commandFolders) {
 	}
 }
 
-client.on('messageCreate', message => {
+client.on('messageCreate', async message => {
     if (message.author.bot) return;
 
     // Fetch all banned words from the database
-    db.all('SELECT word FROM banned_words', [], (err, rows) => {
+    db.all('SELECT word FROM banned_words', [], async (err, rows) => {
         if (err) {
             throw err;
         }
-        
-        const bannedWords = rows.map(row => row.word);
+
+        const bannedWords = rows.map(row => row.word.toLowerCase()); // Convert to lowercase for case-insensitive matching
 
         for (const word of bannedWords) {
-            console.log(`Banned word: ${word}`);
             if (message.content.toLowerCase().includes(word)) {
                 console.log(`A message contained a banned word! Deleting message.`);
-                message.delete()
-                    .then(msg => {
-                        console.log(`Deleted message from ${msg.author.username}`);
+                try {
+                    await message.delete();
+                    console.log(`Deleted message from ${message.author.username}`);
+                } catch (deleteErr) {
+                    console.error(`Failed to delete message:`, deleteErr);
+                }
 
-                        // Insert or ignore a row for the user
-                        db.run('INSERT OR IGNORE INTO user_count (user_id, count) VALUES (?, 0)', [message.author.id], function(err) {
-                            if (err) {
-                                return console.error(err.message);
-                            }
+                // Insert or ignore a row for the user
+                db.run('INSERT OR IGNORE INTO user_count (user_id, count) VALUES (?, 0)', [message.author.id], function(err) {
+                    if (err) {
+                        return console.error(err.message);
+                    }
 
-                            // Update the count for the user
-                            db.run('UPDATE user_count SET count = count + 1 WHERE user_id = ?', [message.author.id], function(err) {
+                    // Update the count for the user
+                    db.run('UPDATE user_count SET count = count + 1 WHERE user_id = ?', [message.author.id], function(err) {
+                        if (err) {
+                            return console.error(err.message);
+                        }
+                        console.log(`User's counter has been updated.`);
+
+                        if (this.changes > 0) {
+                            // Check if user's counter exceeds 20 and kick if necessary
+                            db.get('SELECT count FROM user_count WHERE user_id = ?', [message.author.id], async (err, row) => {
                                 if (err) {
                                     return console.error(err.message);
                                 }
-                                console.log(`User's counter has been updated.`);
+
+                                if (row.count >= 20) {
+                                    try {
+                                        const member = await message.guild.members.fetch(message.author);
+                                        await member.kick('You have had too many messages deleted.');
+                                        console.log(`Kicked ${message.author.username} for having too many messages deleted.`);
+                                        // Reset user's counter
+                                        db.run(`UPDATE user_count SET count = 0 WHERE user_id = ?`, [message.author.id]);
+                                    } catch (kickErr) {
+                                        console.error(`Failed to kick user:`, kickErr);
+                                    }
+                                }
                             });
-                        });
-						if (this.changes > 0 && this.lastID >= 20) {
-							// Kick the user
-							msg.member.kick('You have had too many messages deleted.')
-								.then(() => {
-									console.log(`Kicked ${msg.author.username} for having too many messages deleted.`);
-									// Reset user's counter
-									db.run(`UPDATE user_counters SET counter = 0 WHERE user_id = ?`, [msg.author.id]);
-								})
-								.catch(console.error);
-						}
-                    })
-                    .catch(console.error);
+                        }
+                    });
+                });
                 break; // exits the loop once a banned word has been found and the message is deleted
             }
         }
     });
 });
+
 
 function scheduleReminders() {
 	db.all('SELECT * FROM reminders WHERE reminder_time > ?', [Date.now()], (err, rows) => {
@@ -180,22 +197,6 @@ client.once(Events.ClientReady, () => {
 });
 // Schedule reminders every 10 minutes to handle cases where the bot was offline during a reminder time
 setInterval(scheduleReminders, 10 * 60 * 1000);
-client.on('messageReactionAdd', async (reaction, user) => {
-    if (user.bot) return;
-
-    db.get('SELECT role_id FROM emoji_roles WHERE emoji = ?', [reaction.emoji.name], (err, row) => {
-        if (err) {
-            console.log(err.message);
-            return;
-        }
-
-        if (row) {
-            const role = reaction.message.guild.roles.cache.get(row.role_id);
-            const member = reaction.message.guild.members.cache.get(user.id);
-            member.roles.add(role);
-        }
-    });
-});
 
 client.on(Events.InteractionCreate, async interaction => {
 	if (!interaction.isChatInputCommand()) return;
@@ -217,17 +218,33 @@ client.on(Events.InteractionCreate, async interaction => {
     
 
 });
-client.on('guildMemberAdd', member => {
-    db.get("SELECT role_id FROM auto_roles WHERE guild_id = ?", [member.guild.id], function(err, row) {
-        if (err) {
-            return console.error(err.message);
-        }
-        if (row) {
-            const role = member.guild.roles.cache.get(row.role_id);
-            member.roles.add(role).catch(console.error);
-        }
-    });
+
+client.on('messageCreate', async (message) => {
+	if (message.author.bot) return;
+    // Ignore messages from bots
+    if (message.author.bot) return;
+
+    // Allow administrators and the bot to send URLs
+    if (message.member.permissions.has('ADMINISTRATOR')) return;
+	// Fetch the URL filtering state from the database
+	db.get('SELECT url_filter_enabled FROM config WHERE guild_id = ?', [message.guild.id], (err, row) => {
+		if (err) {
+			console.error(err.message);
+			return;
+		}
+
+		if (row && row.url_filter_enabled) {
+			// Regular expression to match URLs
+			const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+			// Check if the message contains URLs
+			if (urlRegex.test(message.content)) {
+				message.delete().catch(console.error);
+			}
+		}
+	});
 });
+
 
 
 
