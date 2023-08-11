@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, Events, GatewayIntentBits, Permissions, PermissionsBitField } = require('discord.js');
+const { Client, Collection, Events, GatewayIntentBits, Permissions, PermissionsBitField, BitField } = require('discord.js');
 const { token } = require('./config.json');
 
 
@@ -48,7 +48,7 @@ db.run(`
       CREATE TABLE IF NOT EXISTS config (
         guild_id TEXT PRIMARY KEY,
         url_filter_enabled INTEGER DEFAULT 0,
-        auto_role_enabled INTEGER DEFAULT 0,
+        verification_status INTEGER DEFAULT 0,
         filter_status INTEGER DEFAULT 0
       )
 `);
@@ -62,6 +62,9 @@ db.run(`CREATE TABLE IF NOT EXISTS verification (
         console.log('Table verification created or already exists.');
     }
 });
+
+
+
 const client = new Client({ 
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMembers], 
     partials: ['MESSAGE', 'CHANNEL', 'REACTION'] 
@@ -200,9 +203,26 @@ function scheduleReminders() {
 }
 
 
-client.once(Events.ClientReady, () => {
+client.once(Events.ClientReady, async () => {
 	console.log('Ready!');
     scheduleReminders();
+    for (const guild of client.guilds.cache.values()) {
+        const row = await new Promise((resolve, reject) => {
+            db.get('SELECT guild_id FROM config WHERE guild_id = ?', [guild.id], (err, row) => {
+                if (err) reject(err);
+                resolve(row);
+            });
+        });
+
+        if (!row) {
+            await new Promise((resolve, reject) => {
+                db.run('INSERT INTO config (guild_id) VALUES (?)', [guild.id], (err) => {
+                    if (err) reject(err);
+                    resolve();
+                });
+            });
+        }
+    }
 });
 // Schedule reminders every 10 minutes to handle cases where the bot was offline during a reminder time
 setInterval(scheduleReminders, 10 * 60 * 1000);
@@ -275,7 +295,8 @@ client.on('guildMemberAdd', async member => {
             role = await member.guild.roles.create({
                 name: 'Unverified',
                 color: '#808080',
-                reason: 'Auto role for new members'
+                reason: 'Auto role for new members',
+                permissions: []
             }).catch(console.error);
         }
 
@@ -302,7 +323,10 @@ client.on('interactionCreate', async interaction => {
             if (!verifiedRole) {
                 verifiedRole = await member.guild.roles.create({
                     name: 'Verified',
-                    reason: 'Role needed for verified members'
+                    reason: 'Role needed for verified members',
+                    permissions: [
+
+                    ]
                 }).catch(console.error);
             }
             await member.roles.add(verifiedRole).catch(console.error);
