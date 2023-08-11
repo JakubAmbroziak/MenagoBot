@@ -30,39 +30,6 @@ module.exports = {
 
         await interaction.reply({embeds: [embed], components: [button]});
 
-        const collector = await interaction.channel.createMessageComponentCollector();
 
-        collector.on('collect', async i => {
-            
-            const unverifiedRole = i.guild.roles.cache.find(r => r.name === "Unverified");
-            if (unverifiedRole && i.member.roles.cache.has(unverifiedRole.id)) {
-                await i.member.roles.remove(unverifiedRole);
-            }
-
-            let verifiedRole = i.guild.roles.cache.find(r => r.name === "Verified");
-            if (!verifiedRole) {
-                try {
-                    verifiedRole = await i.guild.roles.create({
-                        name: 'Verified',
-                        color: '90ee90',
-                        permissions: [],  // you can specify permissions here, or leave it empty for default
-                        reason: 'Verified role did not exist, so it was created.'
-                    });
-                    console.log('Verified role created.');
-                } catch (error) {
-                    console.error('Error creating the Verified role:', error);
-                }
-            }
-
-            if (verifiedRole) {
-                await i.member.roles.add(verifiedRole);
-                i.user.send(`You are now verified within ${i.guild.name}`).catch(err => {
-                    console.error('Failed to send DM', err);
-                });
-
-            }
-            await i.deferUpdate();
-
-        });
     }    
 };

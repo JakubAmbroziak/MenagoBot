@@ -283,18 +283,21 @@ client.on('interactionCreate', async interaction => {
         if (interaction.customId === 'button') {
             const member = interaction.member;
 
-            // Remove 'Unverified' role and add 'Verified' role
+            // Remove 'Unverified' role
             const unverifiedRole = member.guild.roles.cache.find(r => r.name === "Unverified");
-            if (unverifiedRole) member.roles.remove(unverifiedRole);
+            if (unverifiedRole) {
+                await member.roles.remove(unverifiedRole).catch(console.error);
+            }
 
+            // Add 'Verified' role
             let verifiedRole = member.guild.roles.cache.find(r => r.name === "Verified");
             if (!verifiedRole) {
                 verifiedRole = await member.guild.roles.create({
                     name: 'Verified',
                     reason: 'Role needed for verified members'
-                });
+                }).catch(console.error);
             }
-            member.roles.add(verifiedRole);
+            await member.roles.add(verifiedRole).catch(console.error);
 
             await interaction.user.send(`You are now verified within ${interaction.guild.name}`).catch(err => {
                 console.error('Failed to send DM', err);
@@ -305,6 +308,7 @@ client.on('interactionCreate', async interaction => {
         }
     }
 });
+
 
 
 client.login(token);
