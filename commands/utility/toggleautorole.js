@@ -17,24 +17,28 @@ module.exports = {
             });
         });
 
-        let updatedValue;
         if (row) {
-            updatedValue = row.auto_role_enabled === 1 ? 0 : 1;
-        } else {
-            updatedValue = 1;  // If no value found, default to enabling it
-        }
+            const updatedValue = row.auto_role_enabled === 1 ? 0 : 1;
 
-        // Update DB
-        await new Promise((resolve, reject) => {
-            db.run('INSERT OR REPLACE INTO config (guild_id, auto_role_enabled) VALUES (?, ?)', 
-                [interaction.guild.id, updatedValue], 
-                function(err) {
+            // Update the existing row
+            await new Promise((resolve, reject) => {
+                db.run('UPDATE config SET auto_role_enabled = ? WHERE guild_id = ?', [updatedValue, interaction.guild.id], function(err) {
                     if (err) reject(err);
                     resolve(this.lastID);
-                }
-            );
-        });
+                });
+            });
 
-        await interaction.reply(`Auto role feature has been ${updatedValue === 1 ? 'enabled' : 'disabled'}`);
+            await interaction.reply(`Auto role feature has been ${updatedValue === 1 ? 'enabled' : 'disabled'}`);
+        } else {
+            // If no existing row for the guild, insert a new one with auto_role_enabled set to 1 by default
+            await new Promise((resolve, reject) => {
+                db.run('INSERT INTO config (guild_id, auto_role_enabled) VALUES (?, 1)', [interaction.guild.id], function(err) {
+                    if (err) reject(err);
+                    resolve(this.lastID);
+                });
+            });
+
+            await interaction.reply(`Auto role feature has been enabled`);
+        }
     },
 };

@@ -48,7 +48,8 @@ db.run(`
       CREATE TABLE IF NOT EXISTS config (
         guild_id TEXT PRIMARY KEY,
         url_filter_enabled INTEGER DEFAULT 0,
-        auto_role_enabled INTEGER DEFAULT 0
+        auto_role_enabled INTEGER DEFAULT 0,
+        filter_status INTEGER DEFAULT 0
       )
 `);
 db.run(`CREATE TABLE IF NOT EXISTS verification (
@@ -89,6 +90,12 @@ for (const folder of commandFolders) {
 client.on('messageCreate', async message => { //filter
     if (message.author.bot) return;
 
+    db.get('SELECT filter_status FROM config WHERE guild_id = ?', [message.guild.id], (err, row) => {
+        if (err) return console.error(err);
+
+        // If the filter is off, or if there's no entry for this guild (defaults to off), return
+        if (!row || row.filter_status === 0) return;
+    
     // Fetch all banned words from the database
     db.all('SELECT word FROM banned_words', [], async (err, rows) => {
         if (err) {
@@ -146,6 +153,7 @@ client.on('messageCreate', async message => { //filter
             }
         }
     });
+});
 });
 
 
