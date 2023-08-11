@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
+const { Client, Collection, Events, GatewayIntentBits, Permissions, PermissionsBitField } = require('discord.js');
 const { token } = require('./config.json');
 
 
@@ -47,19 +47,20 @@ db.run(`
 db.run(`
       CREATE TABLE IF NOT EXISTS config (
         guild_id TEXT PRIMARY KEY,
-        url_filter_enabled INTEGER DEFAULT 1,
-        auto_role_enabled INTEGER DEFAULT 1
+        url_filter_enabled INTEGER DEFAULT 0,
+        auto_role_enabled INTEGER DEFAULT 0
       )
 `);
-db.run(`
-CREATE TABLE IF NOT EXISTS dynamic_commands (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    command_name TEXT NOT NULL,
-    response TEXT NOT NULL
-)
-`);
-
-
+db.run(`CREATE TABLE IF NOT EXISTS verification (
+    guild_id TEXT PRIMARY KEY,
+    message_id TEXT NOT NULL
+)`, (err) => {
+    if (err) {
+        console.error('Error creating table:', err.message);
+    } else {
+        console.log('Table verification created or already exists.');
+    }
+});
 const client = new Client({ 
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildVoiceStates, GatewayIntentBits.GuildMembers], 
     partials: ['MESSAGE', 'CHANNEL', 'REACTION'] 
@@ -85,7 +86,7 @@ for (const folder of commandFolders) {
 	}
 }
 
-client.on('messageCreate', async message => {
+client.on('messageCreate', async message => { //filter
     if (message.author.bot) return;
 
     // Fetch all banned words from the database
@@ -220,12 +221,15 @@ client.on(Events.InteractionCreate, async interaction => {
 });
 
 client.on('messageCreate', async (message) => {
-	if (message.author.bot) return;
+    if (!message.guild) return;
+
     // Ignore messages from bots
     if (message.author.bot) return;
 
-    // Allow administrators and the bot to send URLs
-    if (message.member.permissions.has('ADMINISTRATOR')) return;
+    // Fetch member for checking permissions
+    if (message.member && message.member.permissions.has(PermissionsBitField.Flags.Administrator)) return;
+
+
 	// Fetch the URL filtering state from the database
 	db.get('SELECT url_filter_enabled FROM config WHERE guild_id = ?', [message.guild.id], (err, row) => {
 		if (err) {
@@ -245,7 +249,62 @@ client.on('messageCreate', async (message) => {
 	});
 });
 
+client.on('guildMemberAdd', async member => {
+    // Fetch current auto role status from the DB
+    const row = await new Promise((resolve, reject) => {
+        db.get('SELECT auto_role_enabled FROM config WHERE guild_id = ?', [member.guild.id], (err, row) => {
+            if (err) reject(err);
+            resolve(row);
+        });
+    });
 
+    // Check if auto role is enabled
+    if (row && row.auto_role_enabled === 1) {
+        let role = member.guild.roles.cache.find(r => r.name === "Unverified");
+
+        // If the role doesn't exist, create it
+        if (!role) {
+            role = await member.guild.roles.create({
+                name: 'Unverified',
+                color: '#808080',
+                reason: 'Auto role for new members'
+            }).catch(console.error);
+        }
+
+        // Add the role to the member
+        member.roles.add(role).catch(console.error);
+    }
+});
+
+client.on('interactionCreate', async interaction => {
+    // Check if it's a button interaction
+    if (interaction.isButton()) {
+        // Check if the button's custom ID matches
+        if (interaction.customId === 'button') {
+            const member = interaction.member;
+
+            // Remove 'Unverified' role and add 'Verified' role
+            const unverifiedRole = member.guild.roles.cache.find(r => r.name === "Unverified");
+            if (unverifiedRole) member.roles.remove(unverifiedRole);
+
+            let verifiedRole = member.guild.roles.cache.find(r => r.name === "Verified");
+            if (!verifiedRole) {
+                verifiedRole = await member.guild.roles.create({
+                    name: 'Verified',
+                    reason: 'Role needed for verified members'
+                });
+            }
+            member.roles.add(verifiedRole);
+
+            await interaction.user.send(`You are now verified within ${interaction.guild.name}`).catch(err => {
+                console.error('Failed to send DM', err);
+            });
+
+            // Acknowledge the interaction
+            await interaction.deferUpdate();
+        }
+    }
+});
 
 
 client.login(token);
