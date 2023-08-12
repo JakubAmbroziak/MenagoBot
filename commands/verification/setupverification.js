@@ -22,7 +22,7 @@
                     {
                         id: interaction.guild.roles.everyone.id,
                         deny: [PermissionsBitField.Flags.SendMessages],
-                        allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField .Flags.ReadMessageHistory, PermissionsBitField.Flags.UseEmbeddedActivities]
+                        allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.ReadMessageHistory, PermissionsBitField.Flags.UseEmbeddedActivities]
                     }
                 ]
             });

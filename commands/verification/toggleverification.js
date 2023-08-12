@@ -37,7 +37,7 @@ module.exports = {
         await new Promise((resolve, reject) => {
             db.run('UPDATE config SET verification_status = ? WHERE guild_id = ?', 
             [updatedValue, interaction.guild.id], 
-            function(err) {
+            function(err) {``
                 if (err) reject(err);
                 resolve(this.lastID);
             }

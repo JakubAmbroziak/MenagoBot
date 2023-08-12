@@ -21,15 +21,15 @@ module.exports = {
                 return;
             }
             
-            const words = data.trim().split('\n');  // Split by newline to get each word
+            const words = data.trim().split(/\r?\n/);  // Split by newline to get each word
         
             words.forEach(word => {
+                const cleanedWord = word.trim().toLowerCase();
                 // Insert each word into the database
-                db.run('INSERT INTO banned_words (word) VALUES (?)', [word], function(err) {
+                db.run('INSERT OR IGNORE INTO banned_words (word) VALUES (?)', [cleanedWord], function(err) {
                     if (err) {
                         return console.error(err.message);
                     }
-                    
                 });
             });
         });

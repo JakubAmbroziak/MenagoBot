@@ -15,53 +15,60 @@ let db = new sqlite3.Database('./botData.db', (err) => {
   console.log('Connected to the SQlite database.');
 });
 
-db.run(`CREATE TABLE IF NOT EXISTS banned_words (
-    word TEXT PRIMARY KEY
-)`);
-
-db.run(`CREATE TABLE IF NOT EXISTS user_count (
-    user_id TEXT PRIMARY KEY,
-    count INTEGER NOT NULL DEFAULT 0
-)`);
-
-db.serialize(function() {
-    db.run("CREATE TABLE IF NOT EXISTS auto_roles (guild_id TEXT, role_id TEXT)", (err) => {
+const createTable = (query, tableName) => {
+    db.run(query, (err) => {
         if (err) {
-            console.error("Failed to create 'auto_roles' table", err);
+            console.error(`Error creating table '${tableName}':`, err.message);
         } else {
-            console.log("'auto_roles' table created or already exists");
+            console.log(`Table '${tableName}' created or already exists.`);
         }
     });
-});
-db.run(`
-  CREATE TABLE IF NOT EXISTS role_messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    message_id TEXT NOT NULL,
-    guild_id TEXT NOT NULL
-  );
-`, (err) => {
-  if (err) {
-    console.log(err.message);
-  }
-});
-db.run(`
-      CREATE TABLE IF NOT EXISTS config (
-        guild_id TEXT PRIMARY KEY,
-        url_filter_enabled INTEGER DEFAULT 0,
-        verification_status INTEGER DEFAULT 0,
-        filter_status INTEGER DEFAULT 0
-      )
-`);
-db.run(`CREATE TABLE IF NOT EXISTS verification (
-    guild_id TEXT PRIMARY KEY,
-    message_id TEXT NOT NULL
-)`, (err) => {
-    if (err) {
-        console.error('Error creating table:', err.message);
-    } else {
-        console.log('Table verification created or already exists.');
+};
+
+const tables = [
+    {
+        query: `CREATE TABLE IF NOT EXISTS banned_words (word TEXT PRIMARY KEY)`,
+        name: 'banned_words'
+    },
+    {
+        query: `CREATE TABLE IF NOT EXISTS user_count (
+            user_id TEXT PRIMARY KEY,
+            count INTEGER NOT NULL DEFAULT 0
+        )`,
+        name: 'user_count'
+    },
+    {
+        query: `CREATE TABLE IF NOT EXISTS auto_roles (guild_id TEXT, role_id TEXT)`,
+        name: 'auto_roles'
+    },
+    {
+        query: `CREATE TABLE IF NOT EXISTS role_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            message_id TEXT NOT NULL,
+            guild_id TEXT NOT NULL
+        )`,
+        name: 'role_messages'
+    },
+    {
+        query: `CREATE TABLE IF NOT EXISTS config (
+            guild_id TEXT PRIMARY KEY,
+            url_filter_enabled INTEGER DEFAULT 0,
+            verification_status INTEGER DEFAULT 0,
+            filter_status INTEGER DEFAULT 0
+        )`,
+        name: 'config'
+    },
+    {
+        query: `CREATE TABLE IF NOT EXISTS verification (
+            guild_id TEXT PRIMARY KEY,
+            message_id TEXT NOT NULL
+        )`,
+        name: 'verification'
     }
-});
+];
+
+tables.forEach(table => createTable(table.query, table.name));
+
 
 
 
@@ -104,8 +111,9 @@ client.on('messageCreate', async message => { //filter
         if (err) {
             throw err;
         }
-
-        const bannedWords = rows.map(row => row.word.toLowerCase()); // Convert to lowercase for case-insensitive matching
+        
+        const bannedWords = rows.map(row => row.word.replace(/\r/g, '').toLowerCase()); // Convert to lowercase for case-insensitive matching
+        console.log("Current Banned Words:", bannedWords);
 
         for (const word of bannedWords) {
             if (message.content.toLowerCase().includes(word)) {
@@ -277,34 +285,6 @@ client.on('messageCreate', async (message) => {
 	});
 });
 
-client.on('guildMemberAdd', async member => {
-    // Fetch current auto role status from the DB
-    const row = await new Promise((resolve, reject) => {
-        db.get('SELECT auto_role_enabled FROM config WHERE guild_id = ?', [member.guild.id], (err, row) => {
-            if (err) reject(err);
-            resolve(row);
-        });
-    });
-
-    // Check if auto role is enabled
-    if (row && row.auto_role_enabled === 1) {
-        let role = member.guild.roles.cache.find(r => r.name === "Unverified");
-
-        // If the role doesn't exist, create it
-        if (!role) {
-            role = await member.guild.roles.create({
-                name: 'Unverified',
-                color: '#808080',
-                reason: 'Auto role for new members',
-                permissions: []
-            }).catch(console.error);
-        }
-
-        // Add the role to the member
-        member.roles.add(role).catch(console.error);
-    }
-});
-
 client.on('interactionCreate', async interaction => {
     // Check if it's a button interaction
     if (interaction.isButton()) {
@@ -325,7 +305,7 @@ client.on('interactionCreate', async interaction => {
                     name: 'Verified',
                     reason: 'Role needed for verified members',
                     permissions: [
-
+                        PermissionsBitField.Default
                     ]
                 }).catch(console.error);
             }

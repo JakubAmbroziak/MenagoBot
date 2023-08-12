@@ -29,7 +29,7 @@ module.exports = {
                     }
 
                     const statusMessage = newStatus === 1 ? "on" : "off";
-                    interaction.reply(`Chat filter has been turned ${statusMessage}.`);
+                    interaction.reply({content: `Chat filter has been turned ${statusMessage}.`, ephemeral: true});
                 });
             } else {
                 // If there's no entry for the guild, insert a new row with the default status as on (1)
