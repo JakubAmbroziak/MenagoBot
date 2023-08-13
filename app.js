@@ -113,7 +113,6 @@ client.on('messageCreate', async message => { //filter
         }
         
         const bannedWords = rows.map(row => row.word.replace(/\r/g, '').toLowerCase()); // Convert to lowercase for case-insensitive matching
-        console.log("Current Banned Words:", bannedWords);
 
         for (const word of bannedWords) {
             if (message.content.toLowerCase().includes(word)) {
