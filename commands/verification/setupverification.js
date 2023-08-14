@@ -3,7 +3,7 @@
     
     module.exports = {
         data: new SlashCommandBuilder()
-            .setName('verify')
+            .setName('setupverification')
             .setDescription("Sets up verification message in a new channel."),
     
         async execute(interaction) {
@@ -12,7 +12,7 @@
 
                 return await interaction.reply({ content: "You need to be an admin", ephemeral: true });
             }
-            await interaction.deferReply();
+            await interaction.deferReply({ ephemeral: true });
 
             // Create the verification channel with specific permissions
             const verificationChannel = await interaction.guild.channels.create({
@@ -45,7 +45,7 @@
         .setFooter({text: 'This verification process helps us in maintaining a secure community'})
 
         await verificationChannel.send({embeds: [embed], components: [button]});
-        await interaction.editReply('🎉 The Verification Channel is set up! 🎉');
+        await interaction.editReply({content: '🎉 The Verification Channel is set up! 🎉',  ephemeral: true });
 
         }
     };

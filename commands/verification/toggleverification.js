@@ -44,6 +44,6 @@ module.exports = {
             );
         });
 
-        await interaction.reply({content: `Verification feature has been ${updatedValue === 1 ? 'enabled. Set up verification' : 'disabled. @Everyone role\'s has been set to default'}.`,  ephemeral: true });
+        await interaction.reply({content: `Verification feature has been ${updatedValue === 1 ? 'enabled. Set up verification channel. Use **/setupverification**' : 'disabled. @Everyone role\'s has been set to default'}.`,  ephemeral: true });
     },
 };

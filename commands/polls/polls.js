@@ -10,20 +10,20 @@ module.exports = {
                 .setRequired(true)
         )
         .addStringOption(option =>
-            option.setName('options')
-                .setDescription('The poll options, separated by a comma')
+            option.setName('answers')
+                .setDescription('The poll answers, separated by a comma')
                 .setRequired(false)
         ),
     async execute(interaction) {
         const question = interaction.options.getString('question');
-        const options = interaction.options.getString('options');
+        const options = interaction.options.getString('answers');
 
         let emojiList = ['👍', '👎'];  // Default emojis for Yes/No
         let optionsArray;
         let optionsText = '';
 
         if (!options) {
-            // If no options provided, use default 'Yes' and 'No'
+            // If no answers provided, use default 'Yes' and 'No'
             optionsArray = ['Yes', 'No'];
             optionsText = '👍 - Yes\n \n \n👎 - No';
         } else {
