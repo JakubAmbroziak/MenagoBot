@@ -35,6 +35,7 @@ module.exports = {
         } else {
             const permissions = new PermissionsBitField([
                 PermissionsBitField.Default,
+                PermissionsBitField.Flags.UseApplicationCommands
             ]);
             permissions.remove(PermissionsBitField.Flags.MentionEveryone);
             await everyoneRole.setPermissions(permissions);
