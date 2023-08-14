@@ -1,4 +1,5 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder, PermissionsBitField } = require('discord.js');
+
 const sqlite3 = require('sqlite3').verbose();
 let db = new sqlite3.Database('./botData.db');
 
@@ -8,6 +9,9 @@ module.exports = {
         .setDescription('Toggle the chat filter on or off'),
 
     async execute(interaction) {
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+            return interaction.reply({ content: 'You are not authorized to use this command.', ephemeral: true });
+        }
         // Fetch the current status
         db.get('SELECT filter_status FROM config WHERE guild_id = ?', [interaction.guild.id], (err, row) => {
             if (err) {

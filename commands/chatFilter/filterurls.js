@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder, PermissionsBitField } = require('discord.js');
 const sqlite3 = require('sqlite3').verbose();
 
 // Initialize your database
@@ -11,6 +11,9 @@ module.exports = {
 
 	async execute(interaction) {
 		// Fetch the current state from the database
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+            return interaction.reply({ content: 'You are not authorized to use this command.', ephemeral: true });
+        }
 		db.get('SELECT url_filter_enabled FROM config WHERE guild_id = ?', [interaction.guild.id], (err, row) => {
 			if (err) {
 				console.error(err.message);

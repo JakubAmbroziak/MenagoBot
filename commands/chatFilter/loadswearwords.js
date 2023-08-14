@@ -1,5 +1,5 @@
 const sqlite3 = require('sqlite3').verbose();
-const { SlashCommandBuilder } = require('@discordjs/builders');
+const { SlashCommandBuilder, PermissionsBitField } = require('discord.js');
 const fs = require('fs');
 
 const db = new sqlite3.Database('./botData.db');
@@ -10,10 +10,9 @@ module.exports = {
         .setDescription('Ban swear words'),
 
     async execute(interaction) {
-        if (!interaction.member.permissions.has('ADMINISTRATOR')) {
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
             return interaction.reply({ content: 'You are not authorized to use this command.', ephemeral: true });
         }
-
         await interaction.reply({ content: 'Swear words banned succesfully', ephemeral: true });
         fs.readFile('SwearWords.csv', 'utf8', (err, data) => {
             if (err) {

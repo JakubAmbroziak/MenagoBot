@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { MessageEmbed } = require('discord.js');
+const { PermissionsBitField} = require('discord.js');
 
 const sqlite3 = require('sqlite3').verbose();
 
@@ -50,16 +50,27 @@ module.exports = {
 		  .setDescription('Role to be reminded')
 		  .setRequired(false)),
   
-	async execute(interaction) {
-	  const reminderMessage = interaction.options.getString('message');
-	  const duration = interaction.options.getInteger('duration');
-	  const timestamp = interaction.options.getString('timestamp');
-	  const role = interaction.options.getRole('role');
-  
-	  if (!duration && !timestamp) {
-		await interaction.reply({ content: 'You must provide either a duration or a timestamp for the reminder.', ephemeral: true });
-		return;
-	  }
+		  async execute(interaction) {
+			const reminderMessage = interaction.options.getString('message');
+			const duration = interaction.options.getInteger('duration');
+			const timestamp = interaction.options.getString('timestamp');
+			let role = interaction.options.getRole('role');
+		  
+			// Check if the member has the ADMINISTRATOR permission.
+			// If not, reset the role to null.
+			if (role && !interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+			  await interaction.reply({
+				content: 'Only administrators can set reminders for a role.',
+				ephemeral: true
+			  });
+			  role = null; // Ensures the role is not used in the rest of the code.
+			  return;
+			}
+		  
+			if (!duration && !timestamp) {
+			  await interaction.reply({ content: 'You must provide either a duration or a timestamp for the reminder.', ephemeral: true });
+			  return;
+			}
   
 	  let reminderTime;
 	  if (duration) {

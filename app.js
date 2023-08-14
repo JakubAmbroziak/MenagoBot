@@ -305,12 +305,19 @@ client.on('interactionCreate', async interaction => {
             // Add 'Verified' role
             let verifiedRole = member.guild.roles.cache.find(r => r.name === "Verified");
             if (!verifiedRole) {
+                const permissions = new PermissionsBitField([
+                    PermissionsBitField.Default,
+                ]);
+                permissions.remove(PermissionsBitField.Flags.MentionEveryone);
+
                 verifiedRole = await member.guild.roles.create({
                     name: 'Verified',
                     reason: 'Role needed for verified members',
-                    permissions: [
-                        PermissionsBitField.Default
-                    ]
+                    permissions: permissions
+                        //PermissionsBitField.Default,
+                        //PermissionsBitField.Flags.UseApplicationCommands,
+   
+
                 }).catch(console.error);
             }
             await member.roles.add(verifiedRole).catch(console.error);

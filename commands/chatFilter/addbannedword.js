@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder,PermissionsBitField } = require('discord.js');
 const sqlite3 = require('sqlite3').verbose();
 let db = new sqlite3.Database('./botData.db');
 
@@ -12,6 +12,9 @@ module.exports = {
                 .setRequired(true)),
 
 	async execute(interaction) {
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+            return interaction.reply({ content: 'You are not authorized to use this command.', ephemeral: true });
+        }
         const wordsInput = interaction.options.getString('words');
         // Create an array of words, trim and convert to lowercase
         const words = wordsInput.split(/[ ,]+/).map(word => word.trim().toLowerCase());

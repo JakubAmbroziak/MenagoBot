@@ -10,6 +10,9 @@ module.exports = {
 
     async execute(interaction) {
         // Fetch current verification status from DB
+        if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+            return interaction.reply({ content: 'You are not authorized to use this command.', ephemeral: true });
+        }
         const row = await new Promise((resolve, reject) => {
             db.get('SELECT verification_status FROM config WHERE guild_id = ?', [interaction.guild.id], (err, row) => {
                 if (err) reject(err);
@@ -30,7 +33,11 @@ module.exports = {
         if (updatedValue === 1) {
             await everyoneRole.setPermissions([PermissionsBitField.Flags.UseEmbeddedActivities]);
         } else {
-            await everyoneRole.setPermissions([PermissionsBitField.Default]);
+            const permissions = new PermissionsBitField([
+                PermissionsBitField.Default,
+            ]);
+            permissions.remove(PermissionsBitField.Flags.MentionEveryone);
+            await everyoneRole.setPermissions(permissions);
         }
 
         // Update DB

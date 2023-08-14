@@ -9,8 +9,7 @@
         async execute(interaction) {
             // Check for Administrator permission
             if (!interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-
-                return await interaction.reply({ content: "You need to be an admin", ephemeral: true });
+                return interaction.reply({ content: 'You are not authorized to use this command.', ephemeral: true });
             }
             await interaction.deferReply({ ephemeral: true });
 
