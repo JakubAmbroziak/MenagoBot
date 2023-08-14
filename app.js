@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, Events, GatewayIntentBits, Permissions, PermissionsBitField, BitField } = require('discord.js');
+const { Client, Collection, Events, GatewayIntentBits, Permissions, PermissionsBitField, BitField, ActivityType } = require('discord.js');
 const { token } = require('./config.json');
 
 
@@ -213,6 +213,10 @@ function scheduleReminders() {
 client.once(Events.ClientReady, async () => {
 	console.log('Ready!');
     scheduleReminders();
+     // Set the bot's activity
+     client.user.setActivity('/menagohelp!', { type: ActivityType.Competing });
+
+
     for (const guild of client.guilds.cache.values()) {
         const row = await new Promise((resolve, reject) => {
             db.get('SELECT guild_id FROM config WHERE guild_id = ?', [guild.id], (err, row) => {
@@ -230,6 +234,7 @@ client.once(Events.ClientReady, async () => {
             });
         }
     }
+
 });
 // Schedule reminders every 10 minutes to handle cases where the bot was offline during a reminder time
 setInterval(scheduleReminders, 10 * 60 * 1000);
