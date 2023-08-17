@@ -7,8 +7,8 @@ This is my first GitHub bot project, developed as a part of my bachelor's thesis
 - [Features](#features)
 - [Setup and Installation](#setup-and-installation)
 - [Usage](#usage)
-- [Contribution](#contribution)
-- [License](#license)
+- [Dependencies](#Dependencies)
+
 
 ## Features
 
@@ -45,11 +45,20 @@ Chat Filtering
 URL Filtering
 
 You can enable them as needed using the appropriate commands below.
-Verification
-Activate the verification feature with /toggleverification. Next, establish a verification channel using /setupverification. Unverified members will only have access to the #Verification channel.
-Chat filtering
-Enable the chat filter with /togglefilter. Initially, no words are restricted. Manage the list of banned words using /addbannedword and /removebannedword. To add common swear words to the list, use /banswearwords. Clear the list entirely with /clearbannedwords. Utilize /toggleurlfilter to manage permissions for sending URLs.
-Polls
-Initiate a poll with /poll. Define your answers separated by commas. Without specified answers, the bot defaults to a Yes/No format.
-Reminder
-Stay organized with /reminder. Specify your reminder message and decide between a countdown or a set time. Including a role will notify members with that role when the timer goes off. Without specifying a role, reminders are sent to you directly via DMs.
+### Verification
+Activate the verification feature with */toggleverification*. Next, establish a verification channel using */setupverification.* Unverified members will only have access to the #Verification channel.
+
+### Chat filtering
+Enable the chat filter with */togglefilter.* Initially, no words are restricted. Manage the list of banned words using /addbannedword and */removebannedword.* To add common swear words to the list, use /banswearwords. Clear the list entirely with /clearbannedwords. Utilize */toggleurlfilter* to manage permissions for sending URLs.
+
+### Polls
+Initiate a poll with */poll*. Define your answers separated by commas. Without specified answers, the bot defaults to a Yes/No format.
+
+### Reminder
+Stay organized with */reminder*. Specify your reminder message and decide between a countdown or a set time. Including a role will notify members with that role when the timer goes off. Without specifying a role, reminders are sent to you directly via DMs.
+## Dependencies
+
+The bot relies heavily on two main libraries:
+
+- [Discord.js](https://discord.js.org/): A powerful library that allows for easy interactions with the Discord API.
+- [Sqlite](https://www.sqlite.org/index.html): Useful for storing and retrieving data, making the bot's features more dynamic.
