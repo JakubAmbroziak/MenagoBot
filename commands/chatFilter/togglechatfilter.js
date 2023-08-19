@@ -36,7 +36,7 @@ module.exports = {
                     interaction.reply({content: `Chat filter has been turned ${statusMessage}.`, ephemeral: true});
                 });
             } else {
-                // If there's no entry for the guild, insert a new row with the default status as on (1)
+                // If there's no entry for the guild, insert a new row with the default status as on (0)
                 newStatus = 0;
                 
                 db.run('INSERT INTO config (guild_id, filter_status) VALUES (?, ?)', [interaction.guild.id, newStatus], function(err) {

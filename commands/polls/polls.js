@@ -65,17 +65,5 @@ module.exports = {
                 return;
             }
         }
-
-        // Filter out reactions from other users
-        const filter = (reaction, user) => !user.bot && !emojiList.includes(reaction.emoji.name);
-        const collector = message.createReactionCollector({ filter, dispose: true });
-
-        collector.on('collect', async (reaction, user) => {
-            try {
-                await reaction.users.remove(user.id);
-            } catch (e) {
-                console.log('Failed to remove reaction: ', e);
-            }
-        });
     },
 };

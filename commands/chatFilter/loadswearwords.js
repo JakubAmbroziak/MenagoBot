@@ -19,8 +19,9 @@ module.exports = {
                 console.error('Error reading the file:', err);
                 return;
             }
-            
+
             const words = data.trim().split(/\r?\n/);  // Split by newline to get each word
+        
         
             words.forEach(word => {
                 const cleanedWord = word.trim().toLowerCase();
