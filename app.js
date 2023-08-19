@@ -78,7 +78,7 @@ const client = new Client({
 });
 
  // You need the MessageContent intent
-
+                                                                            //LOADING COMMANDS
 client.commands = new Collection();
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
@@ -302,7 +302,7 @@ client.on('interactionCreate', async interaction => {
                 await member.roles.remove(unverifiedRole).catch(console.error);
             }
 
-            // Add 'Verified' role
+            //...
             let verifiedRole = member.guild.roles.cache.find(r => r.name === "Verified");
             if (!verifiedRole) {
                 const permissions = new PermissionsBitField([
@@ -313,10 +313,7 @@ client.on('interactionCreate', async interaction => {
                 verifiedRole = await member.guild.roles.create({
                     name: 'Verified',
                     reason: 'Role needed for verified members',
-                    permissions: permissions
-                        //PermissionsBitField.Default,
-                        //PermissionsBitField.Flags.UseApplicationCommands,
-   
+                    permissions: permissions 
 
                 }).catch(console.error);
             }
