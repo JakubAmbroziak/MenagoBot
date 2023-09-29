@@ -17,7 +17,6 @@ This is my first GitHub bot project, developed as a part of my bachelor's thesis
 - **Url Filtering:** Simply deletes messages contain urls.
 - **Polls:** A poll system that utilizes emojis.
 - **Reminder(announcement) system** Set reminders for specific tasks or event to user or @role
-...[add other features here]
 
 ## Setup and Installation
 
